@@ -4,20 +4,20 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"registUserActivity/pkg/model/dto"
 )
 
 type  DynamoDB struct{
 	Dynamo  *dynamodb.DynamoDB
-	CheckDevice Methods
+	RegistUserActivity Methods
 }
 
 type Methods struct {
-	CheckDeviceLogic methods
+	RegistUserActivityLogic methods
 }
 
 type methods interface {
-	CheckDeviceExist(deviceID string)error
-	CheckDeviceMotion(deviceID string)(int,error)
+	RegistActivity(req dto.RegistReq)error
 }
 
 func New()(*DynamoDB,error){
@@ -25,10 +25,10 @@ func New()(*DynamoDB,error){
 	svc := dynamodb.New(session.New(), aws.NewConfig().WithRegion("ap-northeast-1"))
 
 	// init methods
-	checkDeviceMethod := newCheckDeviceClient(svc)
+	registUserActivityMethod := newRegistUserActivityClientMethodsClient(svc)
 
 	return &DynamoDB{
 		Dynamo:  svc,
-		CheckDevice: Methods{checkDeviceMethod},
+		RegistUserActivity: Methods{registUserActivityMethod},
 	},nil
 }

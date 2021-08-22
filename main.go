@@ -21,6 +21,11 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		return res.ReturnInternalServerErrorResponse(err)
 	}
 
+	if req.UserID=="" || req.Status==0 || req.Timestamp==0{
+		response.Message = "request is wrong"
+		responseBody, _ := json.Marshal(response)
+		return res.ReturnBadRequestResponse(string(responseBody)), nil
+	}
 
 	client, err := dao.New()
 	if err != nil {
@@ -28,26 +33,9 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		return res.ReturnInternalServerErrorResponse(err)
 	}
 
-	err = client.CheckDevice.CheckDeviceLogic.CheckDeviceExist(deviceId)
+	err = client.RegistUserActivity.RegistUserActivityLogic.RegistActivity(req)
 	if err != nil {
-		if err.Error()=="deviceID is wrong" {
-			response.Message = "deviceID is wrong"
-			responseBody, _ := json.Marshal(response)
-			return res.ReturnBadRequestResponse(string(responseBody)), nil
-		}
 		return res.ReturnInternalServerErrorResponse(err)
-	}
-
-	status,err := client.CheckDevice.CheckDeviceLogic.CheckDeviceMotion(deviceId)
-	if err != nil {
-		log.Println(err)
-		return res.ReturnInternalServerErrorResponse(err)
-	}
-
-	if status == 1{
-		response.Message="action"
-	}else if status == 0{
-		response.Message="not action"
 	}
 
 	responseBody, _ := json.Marshal(response)

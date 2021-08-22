@@ -3,95 +3,40 @@ package dao
 import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"log"
 	"registUserActivity/pkg/model/dto"
-	"errors"
 	"strconv"
-	"time"
 )
 
-type checkDeviceClientMethods struct {
+type registUserActivityClientMethods struct {
 	Client *dynamodb.DynamoDB
 }
 
-func newCheckDeviceClient(client *dynamodb.DynamoDB) methods {
-	return &checkDeviceClientMethods{Client: client}
+func newRegistUserActivityClientMethodsClient(client *dynamodb.DynamoDB) methods {
+	return &registUserActivityClientMethods{Client: client}
 }
 
-func (r *checkDeviceClientMethods) 	CheckDeviceExist(deviceID string)error {
-	input := &dynamodb.GetItemInput{
-		TableName: aws.String("deviceInfo"),
-		Key: map[string]*dynamodb.AttributeValue{
-			"deviceID": {
-				S: aws.String(deviceID),
+func (r *registUserActivityClientMethods)RegistActivity(req dto.RegistReq)error {
+	input := &dynamodb.PutItemInput{
+		TableName: aws.String("userActivities"),
+		Item: map[string]*dynamodb.AttributeValue {
+			"userID": {
+				S: aws.String(req.UserID),
+			},
+			"timestamp": {
+				N: aws.String(strconv.Itoa( req.Timestamp )),
+			},
+			"status": {
+				N: aws.String(strconv.Itoa( req.Status )),
 			},
 		},
 	}
 
-	result, err := r.Client.GetItem(input)
-	if err != nil {
-		log.Println("[GetItem Error]", err)
-		return err
-	}
-
-	deviceInfo := &dto.DeviceInfo{}
-	if err := dynamodbattribute.UnmarshalMap(result.Item, deviceInfo); err != nil {
-		log.Println("[Unmarshal Error]", err)
-		return err
-	}
-	if deviceInfo.DeviceID==""{
-		return errors.New("deviceID is wrong")
-	}
-	return nil
-}
-
-func (r *checkDeviceClientMethods)CheckDeviceMotion(deviceID string)(int,error){
-	now :=time.Now()
-	beforeTime:=strconv.FormatInt(now.Unix()-600, 10)
-
-	input := &dynamodb.QueryInput{
-		TableName: aws.String("SensorData"),
-		ExpressionAttributeNames: map[string]*string{
-			"#sensorID":   aws.String("sensorID"), // alias付けれたりする
-			"#timestamp": aws.String("timestamp"),   // 予約語はそのままだと怒られるので置換する
-		},
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":sensorID": { // :を付けるのがセオリーのようです
-				S: aws.String(deviceID),
-			},
-			":timestampbefore": { // :を付けるのがセオリーのようです
-				N: aws.String(beforeTime),
-			},
-			":timestampafter": { // :を付けるのがセオリーのようです
-				N: aws.String(strconv.FormatInt(now.Unix(), 10)),
-			},
-		},
-		KeyConditionExpression: aws.String("#sensorID = :sensorID AND #timestamp BETWEEN :timestampbefore AND :timestampafter"),         // 検索条件
-		ScanIndexForward:       aws.Bool(false),                 // ソートキーのソート順（指定しないと昇順）
-		Limit:                  aws.Int64(1),                  // 取得件数の指定もできる
-	}
-
-	results, err := r.Client.Query(input)
+	_, err := r.Client.PutItem(input)
 	if err != nil {
 		log.Println(err)
-		return 	0,err
+		return err
 	}
 
-	sensorData := &dto.SensorData{}
-	for _,result :=range results.Items{
-		err = dynamodbattribute.UnmarshalMap(result, sensorData)
-		if err != nil {
-			log.Println("[Unmarshal Error]", err)
-			return 0,err
-		}
-	}
-
-	if sensorData.Co2==0 && int(sensorData.Hum)==0 && int(sensorData.Temp)==0{
-		return 0,nil
-	}else if sensorData.SensorID==""{
-		return 0,nil
-	}
-
-	return 1,nil
+	return nil
 }
