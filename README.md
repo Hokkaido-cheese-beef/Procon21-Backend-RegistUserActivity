@@ -3,31 +3,41 @@
 ## 基本仕様
 ---
 ### 概要
-デバイスの動作確認を行います。
+ユーザーの作業開始、休憩開始、休憩終了の動作を記録としてDBに格納します。
 
 ### 特徴
-リクエストで渡されたデバイスが動作しているかどうか確認します。
+ステータスをDBに入れます。
+ユーザーIDが正しいかどうかは確認していません。(すでにログイン済みのため)
 
 ## 機能仕様
-- HTTP method:GET
-- endpoint:/sensor/{ここにdeviceID}
+- HTTP method:POST
+- endpoint:/activity/regist
 
 ---
 ### 利用法
 
-- endpoint:/sensor/{ここにdeviceID}
+- endpoint:/activity/regist
+
+####  request
+```cassandraql
+{
+    "userID":"0001",
+    "timestamp":1629625499,
+    "status":3
+}
+```
 
 ####  resqonse
 ```cassandraql
 {
-  "Message": "action"
+  "Message": ""
 }
 or
 {
-  "Message": "not action"
+  "Message": "request is wrong"
 }
 ```
-他にもIDが正しくない場合もメッセージを返却します。
+※サーバーエラーの時はステータスコードなどを返します。
 
 ---
 ### アーキテクチャ
